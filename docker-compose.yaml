@@ -1,0 +1,96 @@
+version: '3.8'
+services:
+  redis-master:
+    container_name: redis-master
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: redis
+    command: redis-server --loadmodule /usr/lib/redis/modules/rejson.so --loadmodule /usr/lib/redis/modules/redisearch.so
+    ports:
+      - 6379:6379
+
+  redis-slave1:
+    container_name: redis-slave1
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: redis
+    command: redis-server --slaveof redis-master 6379 --loadmodule /usr/lib/redis/modules/rejson.so --loadmodule /usr/lib/redis/modules/redisearch.so
+    depends_on:
+      - redis-master
+
+  redis-slave2:
+    container_name: redis-slave2
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: redis
+    command: redis-server --slaveof redis-master 6379 --loadmodule /usr/lib/redis/modules/rejson.so --loadmodule /usr/lib/redis/modules/redisearch.so
+    depends_on:
+      - redis-master
+
+  sentinel-master:
+    container_name: sentinel-master
+    image: bitnami/redis-sentinel:latest
+    # volumes:
+    #   - ./sentinel.conf:/opt/bitnami/redis/etc/sentinel.conf
+    environment:
+      - REDIS_MASTER_HOST=redis-master
+      - REDIS_MASTER_PORT_NUMBER=6379
+      - SENTINEL_QUORUM=2
+      - SENTINEL_DOWN_AFTER_MILLISECONDS=30000
+      - SENTINEL_FAILOVER_TIMEOUT=180000
+      - SENTINEL_PARALLEL_SYNCS=1
+    depends_on:
+      - redis-master
+    ports:
+      - 26379:26379
+
+  sentinel-slave1:
+    container_name: sentinel-slave1
+    image: bitnami/redis-sentinel:latest
+    # volumes:
+    #   - ./sentinel.conf:/opt/bitnami/redis/etc/sentinel.conf
+    environment:
+      - REDIS_MASTER_HOST=redis-master
+      - REDIS_MASTER_PORT_NUMBER=6379
+      - SENTINEL_QUORUM=2
+      - SENTINEL_DOWN_AFTER_MILLISECONDS=30000
+      - SENTINEL_FAILOVER_TIMEOUT=180000
+      - SENTINEL_PARALLEL_SYNCS=1
+    depends_on:
+      - redis-master
+    ports:
+      - 26380:26379
+
+  sentinel-slave2:
+    container_name: sentinel-slave2
+    image: bitnami/redis-sentinel:latest
+    # volumes:
+    #   - ./sentinel.conf:/opt/bitnami/redis/etc/sentinel.conf
+    environment:
+      - REDIS_MASTER_HOST=redis-master
+      - REDIS_MASTER_PORT_NUMBER=6379
+      - SENTINEL_QUORUM=2
+      - SENTINEL_DOWN_AFTER_MILLISECONDS=30000
+      - SENTINEL_FAILOVER_TIMEOUT=180000
+      - SENTINEL_PARALLEL_SYNCS=1
+    depends_on:
+      - redis-master
+    ports:
+      - 26381:26379
+
+  # portainer:
+  #   image: portainer/portainer-ce
+  #   container_name: portainer
+  #   restart: always
+  #   ports:
+  #     - 8000:8000
+  #     - 9000:9000
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - portainer_data:/data
+
+volumes:
+  portainer_data:
